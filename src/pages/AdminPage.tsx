@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -30,7 +29,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Trash, Edit, User as UserIcon, Calculator } from "lucide-react";
+import { Plus, Trash, Edit, User as UserIcon, Calculator, Wrench as WrenchIcon, Settings as SettingsIcon } from "lucide-react";
 
 const AdminPage = () => {
   const { user } = useAuth();
@@ -681,12 +680,13 @@ const AdminPage = () => {
                           <TableCell className="font-medium">
                             <div className="flex items-center space-x-2">
                               {tool.icon === "calculator" && <Calculator size={16} />}
-                              {tool.icon === "calculator-2" && <Calculator2 size={16} />}
-                              {tool.icon === "wrench" && <Wrench size={16} />}
-                              {tool.icon === "settings" && <Settings size={16} />}
+                              {tool.icon === "calculator-2" && <Calculator size={16} />}
+                              {tool.icon === "wrench" && <WrenchIcon size={16} />}
+                              {tool.icon === "settings" && <SettingsIcon size={16} />}
                               <span>{tool.name}</span>
                             </div>
                           </TableCell>
+                          
                           <TableCell>{tool.description}</TableCell>
                           <TableCell className="font-mono text-xs">{tool.url}</TableCell>
                           <TableCell>

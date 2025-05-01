@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useTools } from "@/contexts/ToolsContext";
 import { useAuth } from "@/contexts/AuthContext";
 import Layout from "@/components/Layout";
-import { Calculator, Calculator2, Wrench, Settings } from "lucide-react";
+import { Calculator, Wrench as WrenchIcon, Settings as SettingsIcon } from "lucide-react";
 
 const Dashboard = () => {
   const { getAccessibleTools } = useTools();
@@ -22,13 +22,13 @@ const Dashboard = () => {
       case "calculator":
         return <Calculator size={36} className="text-orange-400" />;
       case "calculator-2":
-        return <Calculator2 size={36} className="text-orange-400" />;
+        return <Calculator size={36} className="text-orange-400" />; // Using Calculator for both cases
       case "wrench":
-        return <Wrench size={36} className="text-orange-400" />;
+        return <WrenchIcon size={36} className="text-orange-400" />;
       case "settings":
-        return <Settings size={36} className="text-orange-400" />;
+        return <SettingsIcon size={36} className="text-orange-400" />;
       default:
-        return <Wrench size={36} className="text-orange-400" />;
+        return <WrenchIcon size={36} className="text-orange-400" />;
     }
   };
 
