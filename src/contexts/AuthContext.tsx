@@ -7,7 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 const adminUser: User = {
   id: "admin-1",
   username: "Elidio",
-  email: "elidiopeiraojunior@gmail.com",
+  email: "admin@engitools.com",
   password: "76255", // Em um ambiente real, isso seria armazenado de forma segura
   role: "admin",
   createdAt: new Date(),
