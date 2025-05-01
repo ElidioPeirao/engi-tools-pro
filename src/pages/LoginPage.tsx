@@ -72,9 +72,13 @@ const LoginPage = () => {
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-orange-600">
-            EngiTools Pro
-          </h1>
+          <div className="flex justify-center items-center mb-4">
+            <img 
+              src="/lovable-uploads/0285c5ed-b952-4f21-b6d7-1f9e5464c4ce.png" 
+              alt="EPROJECTS Logo" 
+              className="h-24 md:h-32"
+            />
+          </div>
           <p className="mt-2 text-white/70">
             Acesse ferramentas de engenharia profissionais
           </p>

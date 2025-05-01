@@ -18,9 +18,14 @@ const Index = () => {
   }, [user, isLoading, navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white">
+      <img 
+        src="/lovable-uploads/0285c5ed-b952-4f21-b6d7-1f9e5464c4ce.png" 
+        alt="EPROJECTS Logo" 
+        className="h-24 md:h-32 mb-6"
+      />
       <div className="animate-pulse text-orange-400 text-xl font-medium">
-        Carregando EngiTools Pro...
+        Carregando EPROJECTS...
       </div>
     </div>
   );
