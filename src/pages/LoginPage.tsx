@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -18,16 +18,9 @@ const LoginPage = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
-  const { login, register, user } = useAuth();
+  const { login, register } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  // Redirecionar se já estiver autenticado
-  useEffect(() => {
-    if (user) {
-      navigate("/");
-    }
-  }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,11 +31,6 @@ const LoginPage = () => {
       navigate("/");
     } catch (error) {
       console.error("Erro no login:", error);
-      toast({
-        title: "Erro no login",
-        description: (error as Error).message || "Falha ao realizar login",
-        variant: "destructive",
-      });
     } finally {
       setIsLoading(false);
     }
@@ -75,11 +63,6 @@ const LoginPage = () => {
       navigate("/");
     } catch (error) {
       console.error("Erro no registro:", error);
-      toast({
-        title: "Erro no registro",
-        description: (error as Error).message || "Falha ao criar conta",
-        variant: "destructive",
-      });
     } finally {
       setIsLoading(false);
     }
