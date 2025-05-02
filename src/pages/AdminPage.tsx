@@ -3,11 +3,10 @@ import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTools } from "@/contexts/ToolsContext";
-import { User, BonusCode, CodeRedemption } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
+import { User } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -30,7 +29,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Trash, Edit, User as UserIcon, Calculator, Wrench as WrenchIcon, Settings as SettingsIcon, Gift as GiftIcon } from "lucide-react";
+import { Plus, Trash, Edit, User as UserIcon, Calculator, Wrench as WrenchIcon, Settings as SettingsIcon } from "lucide-react";
 
 const AdminPage = () => {
   const { user } = useAuth();
@@ -52,19 +51,10 @@ const AdminPage = () => {
   const [newToolUrl, setNewToolUrl] = useState("");
   const [newToolIcon, setNewToolIcon] = useState("calculator");
   const [newToolRequiresPro, setNewToolRequiresPro] = useState(false);
-
-  // Estados para códigos bônus
-  const [bonusCodes, setBonusCodes] = useState<BonusCode[]>([]);
-  const [codeRedemptions, setCodeRedemptions] = useState<CodeRedemption[]>([]);
-  const [newCode, setNewCode] = useState("");
-  const [newCodeDuration, setNewCodeDuration] = useState(30);
-  const [newCodeMaxUses, setNewCodeMaxUses] = useState(1);
-  const [newCodeExpiry, setNewCodeExpiry] = useState<string>("");
   
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
   const [isAddToolDialogOpen, setIsAddToolDialogOpen] = useState(false);
   const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
-  const [isAddBonusCodeDialogOpen, setIsAddBonusCodeDialogOpen] = useState(false);
 
   useEffect(() => {
     // Redireciona se não for admin
@@ -82,43 +72,6 @@ const AdminPage = () => {
     if (storedUsers) {
       setUsers(JSON.parse(storedUsers));
     }
-
-    // Carrega códigos bônus do Supabase
-    const fetchBonusCodes = async () => {
-      if (user && user.role === "admin") {
-        try {
-          const { data, error } = await supabase
-            .from('bonus_codes')
-            .select('*')
-            .order('created_at', { ascending: false });
-            
-          if (error) throw error;
-          setBonusCodes(data || []);
-        } catch (error) {
-          console.error('Erro ao carregar códigos bônus:', error);
-          toast({
-            title: "Erro ao carregar códigos",
-            description: "Não foi possível carregar os códigos bônus",
-            variant: "destructive",
-          });
-        }
-
-        // Carrega resgates de códigos
-        try {
-          const { data, error } = await supabase
-            .from('code_redemptions')
-            .select('*')
-            .order('redeemed_at', { ascending: false });
-            
-          if (error) throw error;
-          setCodeRedemptions(data || []);
-        } catch (error) {
-          console.error('Erro ao carregar resgates:', error);
-        }
-      }
-    };
-
-    fetchBonusCodes();
   }, [user, navigate]);
 
   // Atualização de usuários no localStorage
@@ -277,100 +230,12 @@ const AdminPage = () => {
     setIsAddToolDialogOpen(false);
   };
 
-  // Função para gerar código bônus
-  const handleAddBonusCode = async () => {
-    if (!newCode || !newCodeDuration || !newCodeMaxUses) {
-      toast({
-        title: "Erro ao criar código",
-        description: "Preencha todos os campos obrigatórios",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      // Calcula a data de expiração se fornecida
-      let expiresAt = null;
-      if (newCodeExpiry) {
-        expiresAt = new Date(newCodeExpiry).toISOString();
-      }
-
-      const { data, error } = await supabase
-        .from('bonus_codes')
-        .insert({
-          code: newCode.toUpperCase(),
-          created_by: user?.id,
-          expires_at: expiresAt,
-          duration_days: newCodeDuration,
-          max_uses: newCodeMaxUses,
-          current_uses: 0,
-          is_active: true
-        })
-        .select();
-
-      if (error) throw error;
-
-      // Atualiza a lista de códigos
-      if (data && data.length > 0) {
-        setBonusCodes([data[0], ...bonusCodes]);
-      }
-
-      // Limpa o formulário
-      setNewCode("");
-      setNewCodeDuration(30);
-      setNewCodeMaxUses(1);
-      setNewCodeExpiry("");
-      setIsAddBonusCodeDialogOpen(false);
-
-      toast({
-        title: "Código criado com sucesso",
-        description: `O código ${newCode.toUpperCase()} foi criado e está disponível para resgate.`,
-      });
-    } catch (error) {
-      console.error('Erro ao criar código bônus:', error);
-      toast({
-        title: "Erro ao criar código",
-        description: (error as Error).message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Função para desativar código bônus
-  const handleDeactivateCode = async (codeId: string) => {
-    try {
-      const { error } = await supabase
-        .from('bonus_codes')
-        .update({ is_active: false })
-        .eq('id', codeId);
-
-      if (error) throw error;
-
-      // Atualiza a lista de códigos
-      setBonusCodes(bonusCodes.map(code => 
-        code.id === codeId ? { ...code, is_active: false } : code
-      ));
-
-      toast({
-        title: "Código desativado",
-        description: "O código foi desativado com sucesso.",
-      });
-    } catch (error) {
-      console.error('Erro ao desativar código:', error);
-      toast({
-        title: "Erro ao desativar código",
-        description: (error as Error).message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const formatDate = (date: Date | undefined | null) => {
+  const formatDate = (date: Date | undefined) => {
     if (!date) return "N/A";
     return new Date(date).toLocaleDateString("pt-BR");
   };
 
-  const getDaysRemaining = (expiryDate: Date | undefined | null) => {
+  const getDaysRemaining = (expiryDate: Date | undefined) => {
     if (!expiryDate) return 0;
     
     const expiry = new Date(expiryDate);
@@ -384,10 +249,9 @@ const AdminPage = () => {
       {user?.role === "admin" ? (
         <div className="space-y-8">
           <Tabs defaultValue="users" className="w-full">
-            <TabsList className="grid w-full max-w-md grid-cols-3">
+            <TabsList className="grid w-full max-w-md grid-cols-2">
               <TabsTrigger value="users">Usuários</TabsTrigger>
               <TabsTrigger value="tools">Ferramentas</TabsTrigger>
-              <TabsTrigger value="bonus-codes">Códigos Bônus</TabsTrigger>
             </TabsList>
             
             {/* Aba de Usuários */}
@@ -852,215 +716,6 @@ const AdminPage = () => {
                   </Table>
                 </CardContent>
               </Card>
-            </TabsContent>
-            
-            {/* Nova Aba de Códigos Bônus */}
-            <TabsContent value="bonus-codes" className="space-y-4 mt-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Gerenciar Códigos Bônus</h2>
-                
-                <Dialog open={isAddBonusCodeDialogOpen} onOpenChange={setIsAddBonusCodeDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="bg-orange-500 hover:bg-orange-600">
-                      <Plus size={16} className="mr-1" /> Criar Código Bônus
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="glass-card">
-                    <DialogHeader>
-                      <DialogTitle>Criar Novo Código Bônus</DialogTitle>
-                      <DialogDescription>
-                        Crie um código que usuários podem resgatar para obter acesso Pro temporário.
-                      </DialogDescription>
-                    </DialogHeader>
-                    
-                    <div className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="bonus-code">Código</Label>
-                        <Input
-                          id="bonus-code"
-                          value={newCode}
-                          onChange={(e) => setNewCode(e.target.value.toUpperCase())}
-                          placeholder="PROMO2023"
-                          className="bg-black/50 uppercase"
-                        />
-                        <p className="text-xs text-white/60">Digite um código alfanumérico único</p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="duration-days">Duração do acesso Pro (dias)</Label>
-                        <Input
-                          id="duration-days"
-                          type="number"
-                          min={1}
-                          value={newCodeDuration}
-                          onChange={(e) => setNewCodeDuration(parseInt(e.target.value))}
-                          className="bg-black/50"
-                        />
-                        <p className="text-xs text-white/60">Quantos dias de acesso Pro o usuário ganha ao resgatar</p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="max-uses">Quantidade máxima de usos</Label>
-                        <Input
-                          id="max-uses"
-                          type="number"
-                          min={1}
-                          value={newCodeMaxUses}
-                          onChange={(e) => setNewCodeMaxUses(parseInt(e.target.value))}
-                          className="bg-black/50"
-                        />
-                        <p className="text-xs text-white/60">Quantas vezes este código pode ser resgatado no total</p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="expiry-date">Data de expiração (opcional)</Label>
-                        <Input
-                          id="expiry-date"
-                          type="date"
-                          value={newCodeExpiry}
-                          onChange={(e) => setNewCodeExpiry(e.target.value)}
-                          className="bg-black/50"
-                        />
-                        <p className="text-xs text-white/60">Data após a qual o código não pode mais ser resgatado</p>
-                      </div>
-                    </div>
-                    
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setIsAddBonusCodeDialogOpen(false)}>
-                        Cancelar
-                      </Button>
-                      <Button className="bg-orange-500 hover:bg-orange-600" onClick={handleAddBonusCode}>
-                        Criar Código
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
-              
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle>Códigos Bônus Ativos ({bonusCodes.filter(code => code.is_active).length})</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Código</TableHead>
-                        <TableHead>Duração</TableHead>
-                        <TableHead>Usos</TableHead>
-                        <TableHead>Expira em</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {bonusCodes.map((code) => (
-                        <TableRow key={code.id} className={!code.is_active ? "opacity-60" : ""}>
-                          <TableCell className="font-mono font-medium">{code.code}</TableCell>
-                          <TableCell>{code.duration_days} dias</TableCell>
-                          <TableCell>{code.current_uses} / {code.max_uses}</TableCell>
-                          <TableCell>
-                            {code.expires_at ? (
-                              <div>
-                                <div>{formatDate(code.expires_at)}</div>
-                                <div className="text-xs text-orange-400">
-                                  {getDaysRemaining(code.expires_at) > 0 ? 
-                                    `${getDaysRemaining(code.expires_at)} dias restantes` : 
-                                    "Expirado"}
-                                </div>
-                              </div>
-                            ) : (
-                              "Sem expiração"
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {code.is_active ? (
-                              <span className="bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full text-xs">
-                                Ativo
-                              </span>
-                            ) : (
-                              <span className="bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full text-xs">
-                                Desativado
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {code.is_active && (
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => handleDeactivateCode(code.id)}
-                                className="h-8 w-8 p-0 hover:text-red-500"
-                              >
-                                <Trash size={16} />
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {bonusCodes.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-white/60">
-                            Nenhum código bônus encontrado. Crie um novo código para começar.
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-                <CardFooter className="bg-black/20 border-t border-white/10 px-6 py-3">
-                  <p className="text-xs text-white/60">
-                    Os códigos bônus permitem que você ofereça acesso Pro temporário aos usuários. 
-                    Cada código pode ser usado uma quantidade limitada de vezes.
-                  </p>
-                </CardFooter>
-              </Card>
-
-              {/* Lista de resgates de códigos */}
-              {codeRedemptions.length > 0 && (
-                <Card className="glass-card">
-                  <CardHeader>
-                    <CardTitle>Histórico de Resgates ({codeRedemptions.length})</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Usuário</TableHead>
-                          <TableHead>Código</TableHead>
-                          <TableHead>Data de Resgate</TableHead>
-                          <TableHead>Pro até</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {codeRedemptions.map((redemption) => {
-                          const user = users.find(u => u.id === redemption.user_id);
-                          const code = bonusCodes.find(c => c.id === redemption.code_id);
-                          return (
-                            <TableRow key={redemption.id}>
-                              <TableCell>
-                                {user ? user.username : redemption.user_id}
-                              </TableCell>
-                              <TableCell className="font-mono">
-                                {code ? code.code : "Código desconhecido"}
-                              </TableCell>
-                              <TableCell>{formatDate(redemption.redeemed_at)}</TableCell>
-                              <TableCell>
-                                <div>{formatDate(redemption.pro_expires_at)}</div>
-                                <div className="text-xs text-orange-400">
-                                  {getDaysRemaining(redemption.pro_expires_at) > 0 ? 
-                                    `${getDaysRemaining(redemption.pro_expires_at)} dias restantes` : 
-                                    "Expirado"}
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              )}
             </TabsContent>
           </Tabs>
         </div>

@@ -1,8 +1,42 @@
 
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { User, AuthContextType } from "../types";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+
+// Usuário admin pré-definido
+const adminUser: User = {
+  id: "admin-1",
+  username: "Elidio",
+  email: "admin@engitools.com",
+  password: "76255", // Em um ambiente real, isso seria armazenado de forma segura
+  role: "admin",
+  createdAt: new Date(),
+  allowedTools: ["all"]
+};
+
+// Alguns usuários padrão para testes
+const initialUsers: User[] = [
+  adminUser,
+  {
+    id: "user-1",
+    username: "usuario_padrao",
+    email: "usuario@exemplo.com",
+    password: "123456",
+    role: "user",
+    createdAt: new Date(),
+    allowedTools: ["calc-eng", "calc-ele"]
+  },
+  {
+    id: "user-2",
+    username: "usuario_pro",
+    email: "pro@exemplo.com",
+    password: "123456",
+    role: "pro",
+    proExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 dias
+    createdAt: new Date(),
+    allowedTools: ["calc-eng", "calc-ele", "pro-tool-1", "pro-tool-2"]
+  }
+];
 
 // Contexto de autenticação
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -12,77 +46,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { toast } = useToast();
 
-  // Carregar usuário do localStorage ao iniciar e configurar listener para mudanças na autenticação
+  // Carregar usuário do localStorage ao iniciar
   useEffect(() => {
-    // Verificar sessão atual
-    const loadUser = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Primeiro verifica se há um usuário no localStorage (para compatibilidade com o sistema anterior)
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
-        }
-        
-        // Verifica também se há sessão no Supabase
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          // Se tiver sessão no Supabase, busca os dados adicionais do usuário
-          try {
-            // Busca usuários do localStorage para compatibilidade
-            const users = JSON.parse(localStorage.getItem("users") || "[]");
-            const localUser = users.find((u: User) => u.email === session.user.email);
-            
-            if (localUser) {
-              // Combina os dados
-              const updatedUser = {
-                ...localUser,
-                id: session.user.id,
-              };
-              setUser(updatedUser);
-              localStorage.setItem("user", JSON.stringify(updatedUser));
-            }
-          } catch (error) {
-            console.error("Erro ao buscar dados de usuário:", error);
-          }
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    const storedUser = localStorage.getItem("user");
+    const storedUsers = localStorage.getItem("users");
 
-    // Configura listener para mudanças na autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          // Quando um usuário faz login, buscamos seus dados adicionais
-          try {
-            // Busca usuários do localStorage para compatibilidade
-            const users = JSON.parse(localStorage.getItem("users") || "[]");
-            const localUser = users.find((u: User) => u.email === session.user.email);
-            
-            if (localUser) {
-              // Combina os dados
-              const updatedUser = {
-                ...localUser,
-                id: session.user.id,
-              };
-              setUser(updatedUser);
-              localStorage.setItem("user", JSON.stringify(updatedUser));
-            }
-          } catch (error) {
-            console.error("Erro ao buscar dados de usuário:", error);
-          }
-        } else if (event === 'SIGNED_OUT') {
-          // Quando o usuário sai, removemos seus dados
-          setUser(null);
-          localStorage.removeItem("user");
-        }
-      }
-    );
+    if (!storedUsers) {
+      localStorage.setItem("users", JSON.stringify(initialUsers));
+    }
 
-    loadUser();
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
 
     // Verificamos se a sessão pro expirou
     if (user && user.role === "pro" && user.proExpiresAt) {
@@ -112,56 +87,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    setIsLoading(false);
   }, []);
 
-  // Função de login que usa tanto Supabase quanto localStorage
+  // Função de login
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Tenta fazer login no Supabase
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) throw new Error(error.message);
-      
-      // Para compatibilidade, também busca usuário do localStorage
+      // Busca usuários do localStorage
       const users = JSON.parse(localStorage.getItem("users") || "[]");
+      
+      // Encontra o usuário
       const foundUser = users.find((u: User) => u.email === email && u.password === password);
       
-      if (foundUser) {
-        // Verificamos se é um usuário Pro com acesso expirado
-        if (foundUser.role === "pro" && foundUser.proExpiresAt) {
-          const expiryDate = new Date(foundUser.proExpiresAt);
-          if (expiryDate < new Date()) {
-            foundUser.role = "user";
-            foundUser.allowedTools = foundUser.allowedTools.filter(tool => !tool.startsWith("pro-"));
-            
-            // Atualiza na lista de usuários
-            const updatedUsers = users.map((u: User) => 
-              u.id === foundUser.id ? foundUser : u
-            );
-            localStorage.setItem("users", JSON.stringify(updatedUsers));
-            
-            toast({
-              title: "Acesso Pro expirado",
-              description: "Seu acesso Pro expirou. Algumas ferramentas foram desativadas.",
-              variant: "destructive",
-            });
-          }
-        }
-        
-        // Guarda o usuário na sessão
-        localStorage.setItem("user", JSON.stringify(foundUser));
+      if (!foundUser) {
+        throw new Error("Credenciais inválidas");
       }
+      
+      // Verificamos se é um usuário Pro com acesso expirado
+      if (foundUser.role === "pro" && foundUser.proExpiresAt) {
+        const expiryDate = new Date(foundUser.proExpiresAt);
+        if (expiryDate < new Date()) {
+          foundUser.role = "user";
+          foundUser.allowedTools = foundUser.allowedTools.filter(tool => !tool.startsWith("pro-"));
+          
+          // Atualiza na lista de usuários
+          const updatedUsers = users.map((u: User) => 
+            u.id === foundUser.id ? foundUser : u
+          );
+          localStorage.setItem("users", JSON.stringify(updatedUsers));
+          
+          toast({
+            title: "Acesso Pro expirado",
+            description: "Seu acesso Pro expirou. Algumas ferramentas foram desativadas.",
+            variant: "destructive",
+          });
+        }
+      }
+      
+      // Guarda o usuário na sessão
+      localStorage.setItem("user", JSON.stringify(foundUser));
+      setUser(foundUser);
       
       toast({
         title: "Bem-vindo!",
-        description: `Login realizado com sucesso.`,
+        description: `Login realizado com sucesso. Bem-vindo, ${foundUser.username}!`,
       });
     } catch (error) {
       toast({
@@ -179,21 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (username: string, email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Registra o usuário no Supabase
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username,
-            role: "user",
-          }
-        }
-      });
-      
-      if (error) throw new Error(error.message);
-      
-      // Para compatibilidade, também salva no localStorage
+      // Busca usuários do localStorage
       const users = JSON.parse(localStorage.getItem("users") || "[]");
       
       // Verifica se o email já está em uso
@@ -239,14 +195,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Função de logout
-  const logout = async () => {
-    // Sai do Supabase
-    await supabase.auth.signOut();
-    
-    // Limpa localStorage
+  const logout = () => {
     localStorage.removeItem("user");
     setUser(null);
-    
     toast({
       title: "Logout realizado",
       description: "Você saiu da sua conta.",

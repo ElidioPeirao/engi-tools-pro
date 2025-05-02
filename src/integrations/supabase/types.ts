@@ -9,74 +9,7 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      bonus_codes: {
-        Row: {
-          code: string
-          created_at: string | null
-          created_by: string | null
-          current_uses: number | null
-          duration_days: number
-          expires_at: string | null
-          id: string
-          is_active: boolean | null
-          max_uses: number
-        }
-        Insert: {
-          code: string
-          created_at?: string | null
-          created_by?: string | null
-          current_uses?: number | null
-          duration_days: number
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          max_uses: number
-        }
-        Update: {
-          code?: string
-          created_at?: string | null
-          created_by?: string | null
-          current_uses?: number | null
-          duration_days?: number
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          max_uses?: number
-        }
-        Relationships: []
-      }
-      code_redemptions: {
-        Row: {
-          code_id: string
-          id: string
-          pro_expires_at: string
-          redeemed_at: string | null
-          user_id: string
-        }
-        Insert: {
-          code_id: string
-          id?: string
-          pro_expires_at: string
-          redeemed_at?: string | null
-          user_id: string
-        }
-        Update: {
-          code_id?: string
-          id?: string
-          pro_expires_at?: string
-          redeemed_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "code_redemptions_code_id_fkey"
-            columns: ["code_id"]
-            isOneToOne: false
-            referencedRelation: "bonus_codes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
