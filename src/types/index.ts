@@ -5,7 +5,7 @@ export interface User {
   email: string;
   password: string; // Em um ambiente real, isso seria gerenciado de forma segura
   role: "user" | "pro" | "admin";
-  proExpiresAt?: Date; // Data de expiração do acesso Pro
+  proExpiresAt?: Date | null; // Data de expiração do acesso Pro
   createdAt: Date;
   allowedTools: string[]; // IDs das ferramentas permitidas para o usuário
 }
@@ -47,4 +47,5 @@ export type AuthContextType = {
   login: (email: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  redeemCode: (code: string) => Promise<boolean>;
 };
